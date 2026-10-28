@@ -5976,7 +5976,8 @@ saveExt(d=>{d.campr=S.camps.map(c=>({def:c.def,sick:c.sick||[]}));Object.assign(
 function guardMul(){return 1+((TOWNS[S.town].lvl||1)-1)*.9;}
 {const _uc=updateCamps;updateCamps=function(dt){const n0=S.proj.length;_uc(dt);for(let i=n0;i<S.proj.length;i++){const p=S.proj[i];if(p.turret&&p.bullet&&!p._gm){p._gm=1;p.dmg*=guardMul();}}};}
 // ================= TURNED CREW FOLLOW YOU (or stay home) =================
-function followers(){return S.crew.filter(m=>m.turned&&!m.dead&&m.follow!==false);}
+function isFollower(m){return m.turned?m.follow!==false:m.follow===true;}
+function followers(){return S.crew.filter(m=>!m.dead&&isFollower(m));}
 function crewAllyTick(){if(S.mode!=='hunter'){return;}const P=S.P;
   followers().forEach(m=>{let a=S.allies.find(x=>x.crewRef===m&&!x.dead);
     if(!a){if(m.hp!==undefined&&m.hp<=0)return;a={x:P.x+rnd(-30,30),y:P.y+rnd(-30,30),r:11,hp:m.hp||80,maxHp:80,dmg:12,spd:205,life:1e9,atkCd:0,dead:false,sc:P.sc,look:'crew',col:'#c27bff',crewRef:m};S.allies.push(a);}
@@ -5985,26 +5986,26 @@ function crewAllyTick(){if(S.mode!=='hunter'){return;}const P=S.P;
   S.allies.forEach(a=>{if(a.crewRef&&(a.crewRef.follow===false||a.crewRef.dead))a.dead=true;});}
 {const _pa=pollAutosave;pollAutosave=function(dt){_pa(dt);crewAllyTick();};}
 // followers aren't at the base, and they never attack your pack
-{const _uc=updateCrew;updateCrew=function(dt){const all=S.crew;S.crew=all.filter(m=>!(m.turned&&m.follow!==false));try{_uc(dt);}finally{const home=S.crew;S.crew=all;}};}
-{const _dc=drawCrew;drawCrew=function(){const all=S.crew;S.crew=all.filter(m=>!(m.turned&&m.follow!==false));try{_dc();}finally{S.crew=all;}};}
+{const _uc=updateCrew;updateCrew=function(dt){const all=S.crew;S.crew=all.filter(m=>!isFollower(m));try{_uc(dt);}finally{const home=S.crew;S.crew=all;}};}
+{const _dc=drawCrew;drawCrew=function(){const all=S.crew;S.crew=all.filter(m=>!isFollower(m));try{_dc();}finally{S.crew=all;}};}
 {const _ua=updateAllies;updateAllies=function(dt){const pk=S.enemies.filter(e=>e.pack);if(pk.length)S.enemies=S.enemies.filter(e=>!e.pack);try{_ua(dt);}finally{if(pk.length)S.enemies=S.enemies.concat(pk);}
   S.allies.forEach(a=>{if(a.crewRef&&!a.dead&&a.hp<a.maxHp)a.hp=Math.min(a.maxHp,a.hp+1.5*dt);});};}
 // draw them as mutants, not bugs
 {const _dw=drawWorld;drawWorld=function(cam){const cr=S.allies.filter(a=>a.crewRef);if(cr.length)S.allies=S.allies.filter(a=>!a.crewRef);try{_dw(cam);}finally{if(cr.length)S.allies=S.allies.concat(cr);}
   cr.forEach(a=>{if(a.dead||a.sc!==S.P.sc)return;const m=a.crewRef,tg=nearestFoe(a,420),fa=tg?Math.atan2(tg.y-a.y,tg.x-a.x):Math.atan2(S.P.y-a.y,S.P.x-a.x);
-    ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='rgba(194,123,255,.22)';ctx.beginPath();ctx.arc(0,0,18,0,7);ctx.fill();ctx.rotate(fa);
-    circ(6,-8,4.5,'#b8a0d0',1.5);circ(6,8,4.5,'#b8a0d0',1.5);circ(0,0,11,'#5a3a7a',2);circ(2,0,6,'#b8a0d0',1.5);
-    ctx.fillStyle='#d6a0ff';ctx.shadowColor='#d6a0ff';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(6,-2,1.7,0,7);ctx.arc(6,2,1.7,0,7);ctx.fill();ctx.shadowBlur=0;ctx.restore();
-    label('🧬 '+m.name,a.x,a.y-20,'#d6a0ff',12);if(a.hp<a.maxHp)hpBar(a.x,a.y-30,30,a.hp/a.maxHp,'#c27bff');});};}
+    ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle=m.turned?'rgba(194,123,255,.22)':'rgba(127,200,255,.18)';ctx.beginPath();ctx.arc(0,0,18,0,7);ctx.fill();ctx.rotate(fa);
+    const tn=m.turned,sk=tn?'#b8a0d0':'#e8c09a';circ(6,-8,4.5,sk,1.5);circ(6,8,4.5,sk,1.5);circ(0,0,11,tn?'#5a3a7a':'#4a7a9a',2);circ(2,0,6,sk,1.5);if(!tn){ctx.strokeStyle='#333';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(4,4);ctx.lineTo(18,4);ctx.stroke();}
+    if(m.turned){ctx.fillStyle='#d6a0ff';ctx.shadowColor='#d6a0ff';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(6,-2,1.7,0,7);ctx.arc(6,2,1.7,0,7);ctx.fill();ctx.shadowBlur=0;}ctx.restore();
+    label((m.turned?'🧬 ':ROLES[m.role].icon+' ')+m.name,a.x,a.y-20,m.turned?'#d6a0ff':'#cfe6f4',12);if(a.hp<a.maxHp)hpBar(a.x,a.y-30,30,a.hp/a.maxHp,'#c27bff');});};}
 // camps notice the mutant walking with you
-{const _so=searchOdds;searchOdds=function(c){return clamp(_so(c)-(followers().length?.2:0),.05,.95);};}
+{const _so=searchOdds;searchOdds=function(c){return clamp(_so(c)-(followers().some(m=>m.turned)?.2:0),.05,.95);};}
 function crewCampTick(){if(S.mode!=='hunter'||!followers().length)return;const P=S.P;
   S.camps.forEach(c=>{if(c.raided||c.brood||c.hostile||c.mutDay===S.day)return;
-    if(S.allies.some(a=>a.crewRef&&!a.dead&&a.sc==='out'&&Math.hypot(a.x-c.x,a.y-c.y)<c.r+30)){c.mutDay=S.day;campRep(c,-6,'"You brought THAT inside our wall?! Its eyes are glowing!"');}});}
+    if(S.allies.some(a=>a.crewRef&&a.crewRef.turned&&!a.dead&&a.sc==='out'&&Math.hypot(a.x-c.x,a.y-c.y)<c.r+30)){c.mutDay=S.day;campRep(c,-6,'"You brought THAT inside our wall?! Its eyes are glowing!"');}});}
 {const _pa=pollAutosave;pollAutosave=function(dt){_pa(dt);crewCampTick();};}
 // the Bag shows your crew, with a follow / stay-home switch
 {const _ih=invHtml;invHtml=function(){const h=_ih(),crew=S.crew.filter(m=>!m.dead);if(!crew.length)return h;
-  const rows=crew.map(m=>{const i=S.crew.indexOf(m),f=m.turned&&m.follow!==false;
+  const rows=crew.map(m=>{const i=S.crew.indexOf(m),f=isFollower(m);
     return `<div class="crow ${m.turned?'mut':''}"><span class="ci">${m.turned?'🧬':ROLES[m.role].icon}</span><div><b>${m.name}</b><small>${m.turned?'Turned mutant · '+(f?'following you':'at your cabin'):ROLES[m.role].name+' · lives at your cabin'}</small></div>
       ${m.turned?`<button class="btn sm ${f?'gold':'ghost'}" data-a="crewfollow" data-i="${i}" title="${f?'Send them home to guard your cabin':'Bring them with you. They fight for you, but camps hate seeing them.'}">${f?'🐾 Following':'🏠 At home'}</button>`:''}</div>`;}).join('');
   return h.replace('<h3 class="ih">🕒 Just picked up</h3>',`<h3 class="ih">👥 Crew <small>turned mutants can follow you</small></h3><div class="crows">${rows}</div><h3 class="ih">🕒 Just picked up</h3>`);};}
@@ -6454,5 +6455,80 @@ saveExt(d=>{d.myst={perfectN:S.perfectN||0,treatedN:S.treatedN||0,minHum:S.minHu
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}.mcard{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;background:repeating-linear-gradient(45deg,#1a1a22,#1a1a22 8px,#20202a 8px,#20202a 16px);border:2px dashed #6a6a8a;border-radius:12px;padding:10px 8px;cursor:help}
 .mcard .mi{font-size:34px}.mcard small{font-size:12px;opacity:.85}.mcard em{font-style:normal;font-size:11px;opacity:.7}.mcard.on{background:#0006;border:2px solid var(--mc);box-shadow:0 0 14px var(--mc)}
 .mbar{display:block;width:100%;height:5px;background:#ffffff18;border-radius:3px;overflow:hidden;margin-top:4px}.mbar i{display:block;height:100%;background:#c27bff}`;document.head.appendChild(st);})();
+// ================= MONSTER SIGNS THAT STICK AND DO THINGS · TALKING TO YOUR CREW =================
+// ---------- 1) eyes / claws / spikes: they grow below 75/50/25 and only pull back when you climb 10 higher ----------
+const SIGN_AT=[75,50,25];
+function signStage(){return S.signStage||0;}
+function signTick(){if(S.mode!=='hunter')return;let st=signStage();const h=S.humanity;
+  while(st<3&&h<SIGN_AT[st]){st++;const msg=['','👁️ Your eyes glow now. You can see in the dark.','🦴 CLAWS. Your fingers split and harden. Your melee hits do +25% damage, and people can see them.','🦔 Spikes push out of your back. Anything that hits you gets cut.'][st];
+    banner(['','GLOWING EYES','YOU GREW CLAWS','BACK SPIKES'][st],msg.slice(2),'#c27bff');}
+  while(st>0&&h>=SIGN_AT[st-1]+10){toast(['','👁️ The glow fades from your eyes.','🦴 Your claws pull back in. Just hands again.','🦔 The spikes on your back soften and drop off.'][st],'good');st--;}
+  if(st!==S.signStage)S.signStage=st;S.hstage=3;
+  // heads-up before the next one
+  const nx=SIGN_AT[st];if(nx!==undefined&&h<nx+8&&h>=nx&&S.signWarn!==st+'_'+S.day){S.signWarn=st+'_'+S.day;toast('⚠️ Humanity '+Math.round(h)+'. '+['Your eyes','Claws','Spikes'][st]+' will appear below '+nx+'.','bad');}}
+{let acc=0;const _pa=pollAutosave;pollAutosave=function(dt){_pa(dt);acc+=dt;if(acc>.5){acc=0;try{signTick();}catch(e){}}};}
+// everything that DRAWS a sign uses the sticky stage, not the raw number
+function signHum(){return [100,74,49,24][signStage()];}
+function withSignHum(fn){const h=S.humanity;S.humanity=Math.min(h,signHum());if(signStage()===0)S.humanity=Math.max(h,75);try{return fn();}finally{S.humanity=h;}}
+{const _dp=drawPlayer;drawPlayer=function(){if(S.mode!=='hunter')return _dp();return withSignHum(_dp);};}
+{const _bc=bodyChanges;bodyChanges=function(){if(!S||S.mode!=='hunter')return _bc();return withSignHum(_bc);};}
+{const _bs=bodySvg;bodySvg=function(){if(S.mode!=='hunter')return _bs();let s=withSignHum(_bs);
+  if(signStage()>=2)s=s.replace('</svg>',`<g class="mut" title="🦴 Claws: +25% melee damage. People can see them."><path d="M50 186 l-6 16 l10 -10 Z M57 190 l-1 18 l7 -14 Z M64 189 l5 16 l-1 -15 Z M150 186 l6 16 l-10 -10 Z M143 190 l1 18 l-7 -14 Z M136 189 l-5 16 l1 -15 Z" fill="#f4f0ff" stroke="#3a2a4a" stroke-width="1.5"/></g></svg>`);
+  return s;};}
+// the signs do something
+BODY_HUM[0][3]='Below 75 humanity your eyes glow. You can see in the dark (free Night Eyes).';
+BODY_HUM[1][3]='Below 50 humanity you grow claws: +25% melee damage. People notice.';
+BODY_HUM[2][3]='Below 25 humanity spikes grow on your back: anything that hits you takes damage (free Thorn Skin).';
+{const _ht=hasTrait;hasTrait=function(id){if(S&&S.mode==='hunter'){if(id==='nighteyes'&&signStage()>=1)return true;if(id==='thornskin'&&signStage()>=3)return true;}return _ht(id);};}
+{const _df=dmgFoe;dmgFoe=function(e,amt,src,quiet,opt){if(opt&&opt.melee&&S.mode==='hunter'&&signStage()>=2)amt*=1.25;return _df(e,amt,src,quiet,opt);};}
+saveExt(d=>{d.signStage=S.signStage||0;});
+{const _lg=loadGame;loadGame=function(){const ok=_lg();try{if(ok){const d=saveInfo();S.signStage=d.signStage!==undefined?d.signStage:(S.humanity<25?3:S.humanity<50?2:S.humanity<75?1:0);}}catch(e){}return ok;};}
+// ---------- 2) talk to your crew ----------
+const CREW_LINES={
+  happy:['"Honestly? This shack is starting to feel like home."','"I saw a deer this morning. A real one. Things are coming back."','"You know you hum when you sequence DNA? It\'s nice."','"I used to be a teacher, before. Kids would\'ve loved those lab machines."'],
+  tips:['"The scout says some houses have people hiding in them. Bring food."','"Heard if you heal enough bitten people, something wakes up inside you. A good something."','"Gate guards go easier if your vault isn\'t stuffed with monster DNA."','"Search enough drawers and you learn to move like a ghost. That\'s what my grandma said, anyway."','"Monsters hit the window that\'s glowing. Watch the glow."'],
+  scared:['"Your eyes… they glow when you\'re angry. Did you know that?"','"I\'m not leaving. Yet. Just… don\'t do the thing with the claws near me."','"Some of the others are talking about leaving."'],
+  turned:['"…hungry… but I wait. For you."','"The others… smell afraid. I like it."','"I remember a song. From before. Not the words."','"Tell me who. I will go."']};
+function crewMood(m){if(m.morale===undefined)m.morale=70;return m.morale;}
+function nearCrewMember(){const P=S.P;let best=null,bd=48;
+  if(P.sc==='base')S.crew.forEach(m=>{if(m.dead||isFollower(m)||m.x===undefined)return;const d=Math.hypot(P.x-m.x,P.y-m.y);if(d<bd){bd=d;best=m;}});
+  S.allies.forEach(a=>{if(!a.crewRef||a.dead||a.sc!==P.sc)return;const d=Math.hypot(P.x-a.x,P.y-a.y);if(d<bd){bd=d;best=a.crewRef;}});return best;}
+function crewHtml(){const m=S.crewOpen;if(!m||m.dead||!S.crew.includes(m)){S.panel=null;return '<div class="card"></div>';}
+  const mo=crewMood(m),R=ROLES[m.role]||{icon:'🙂',name:'Helper',desc:''},tn=m.turned,f=isFollower(m);
+  const line=m.lastLine||(tn?pick(CREW_LINES.turned):S.humanity<45?pick(CREW_LINES.scared):pick(CREW_LINES.happy));m.lastLine=line;
+  const row=(a,ic,t,sub,ok,col,extra)=>`<button class="hopt" data-a="${a}" ${extra||''} ${ok?'':'disabled'} style="--hc:${col}"><span>${ic}</span><div><b>${t}</b><small>${sub}</small></div></button>`;
+  const roles=Object.keys(ROLES).map(k=>`<button class="btn sm ${m.role===k?'gold':'ghost'}" data-a="crewrole" data-r="${k}" title="${ROLES[k].desc}">${ROLES[k].icon} ${ROLES[k].name}</button>`).join('');
+  return `<div class="card">${head((tn?'Your mutant':'Your crew')+' · Esc to close',(tn?'🧬 ':R.icon+' ')+m.name,tn?'#c27bff':'#7fc8ff')}
+  <div class="sview"><div class="sface" style="${tn?'background:radial-gradient(#d8c0f0,#7a5a9a)':''}">${tn?'👁️':mo>60?'😊':mo>30?'😐':'😟'}</div><div style="flex:1">
+    <p class="ssay">${line}</p><div class="schips"><span class="schip">${R.icon} ${R.name}</span><span class="schip ${f?'ok':''}">${f?'🐾 with you':'🏠 at your cabin'}</span></div>
+    <div title="Mood. Below 20, they might leave in the night." style="margin-top:6px"><div class="dbar"><i style="width:${mo}%;background:${mo>60?'#7dff9a':mo>30?'#ffd166':'#ff5a68'}"></i></div><small class="mute">Mood ${Math.round(mo)} / 100</small></div></div></div>
+  <div class="hopts">
+    ${row('crewchat','💬','Talk','Hear what\'s on their mind. Sometimes they know things. (+mood, once a day)',m.chatDay!==S.day,'#7fc8ff')}
+    ${row('crewfeed','🍲','Share a meal','1 food. +15 mood.',S.res.food>0,'#7fc8ff')}
+    ${row('crewfollow2','🐾',f?'Send them home':'"Come with me"',f?'They go back to guard and work at your cabin.':'They follow you and fight. They stop doing their cabin job while away.',true,'#7fc8ff')}
+    ${row('crewbye','👋','Let them go',tn?'They wander off into the dark. You might see them again… on the other side.':'They walk back to a camp. No hard feelings.',true,'#ff8a95')}
+  </div><h4 style="margin:12px 0 6px">🛠️ Job at the cabin</h4><div class="row" style="gap:6px;flex-wrap:wrap">${roles}</div>
+  <p class="mute" style="margin:6px 0 0;font-size:13px">${R.desc}</p></div>`;}
+{const _rp=refreshPanel;refreshPanel=function(){if(S.panel==='crewtalk'){showOv(crewHtml(),'panel');return;}_rp();};}
+{const _in=interact;interact=function(){if(S.mode==='hunter'&&!S.P.dead){const m=nearCrewMember();if(m){S.crewOpen=m;m.lastLine=null;openPanel('crewtalk');return;}}_in();};}
+{const _act=act;act=function(a,d){const m=S.crewOpen;
+  if(m&&a==='crewchat'&&m.chatDay!==S.day){m.chatDay=S.day;m.morale=Math.min(100,crewMood(m)+6);m.lastLine=m.turned?pick(CREW_LINES.turned):Math.random()<.5?pick(CREW_LINES.tips):pick(S.humanity<45?CREW_LINES.scared:CREW_LINES.happy);refreshPanel();return;}
+  if(m&&a==='crewfeed'&&S.res.food>0){S.res.food--;m.morale=Math.min(100,crewMood(m)+15);m.lastLine=m.turned?'"…good. More."':'"Oh, thank you. I didn\'t want to say I was hungry."';sfx('pickup');refreshPanel();return;}
+  if(m&&a==='crewfollow2'){m.follow=!isFollower(m);toast(m.follow?'🐾 '+m.name+' falls in beside you.':'🏠 '+m.name+' heads back to your cabin.','mem');hideOv();return;}
+  if(m&&a==='crewbye'){S.crew=S.crew.filter(x=>x!==m);S.allies.forEach(x=>{if(x.crewRef===m)x.dead=true;});if(!m.turned){const c=S.camps.find(c=>!c.raided&&!c.brood);if(c)(c.recruits=c.recruits||[]).push({name:m.name,role:m.role});}
+    toast('👋 '+m.name+(m.turned?' slips away into the dark.':' heads off to a camp.'));hideOv();return;}
+  if(m&&a==='crewrole'&&ROLES[d.r]){m.role=d.r;m.lastLine='"'+ROLES[d.r].name+'? Sure. I can do that."';refreshPanel();return;}
+  _act(a,d);};}
+// mood over time: being kind helps, being a monster hurts
+{const _od=onDawn;onDawn=function(){_od();if(S.mode!=='hunter')return;const gone=[];
+  S.crew.forEach(m=>{if(m.dead)return;const mo=crewMood(m);let d=m.turned?0:(S.humanity<50?-6:-2);if(S.harmDay===S.day-1&&!m.turned)d-=6;m.morale=clamp(mo+d,0,100);
+    if(!m.turned&&m.morale<20&&Math.random()<.5){m.dead=true;m.left=true;gone.push(m.name);}});
+  if(gone.length)toast('😟 '+gone.join(' and ')+' packed up and left in the night. Their mood was too low.','bad');};}
+// jobs pause while they're following you
+{const _cd=crewDawn;crewDawn=function(){const all=S.crew,away=all.filter(m=>!m.turned&&isFollower(m));S.crew=all.filter(m=>!away.includes(m));try{_cd();}finally{const now=S.crew;S.crew=now.concat(away.filter(m=>!now.includes(m)));}};}
+{const _ch=crewHas;crewHas=function(role){return S.crew.some(m=>m.role===role&&!m.dead&&!isFollower(m));};}
+// show "E: talk" over crew at the cabin
+{const _pt=promptText;promptText=function(){if(S.mode==='hunter'&&!S.P.dead){const m=nearCrewMember();if(m)return '💬 E: talk to '+m.name;}return _pt();};}
+saveExt(d=>{if(d.crew)d.crew.forEach((c,i)=>{const m=S.crew[i];if(m){c.morale=m.morale;c.follow=m.follow;}});});
 </script>
 </body></html>

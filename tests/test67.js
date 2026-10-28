@@ -1,0 +1,15 @@
+const {chromium}=require('playwright');const fs=require('fs');
+(async()=>{fs.writeFileSync('wrapped.html','<!doctype html><html><head><meta charset="utf-8"></head><body>'+fs.readFileSync('../build/splice-body.html','utf8')+'</body></html>');
+const b=await chromium.launch();const p=await b.newPage({viewport:{width:1280,height:860}});const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto('file://'+process.cwd()+'/wrapped.html');await p.waitForTimeout(300);
+await p.evaluate(()=>{try{TITLE_TUT=false;}catch(e){}});await p.click('button[data-a="start"][data-mode="story"]');await p.waitForTimeout(300);
+console.log(await p.evaluate(()=>{const S=__splice.S,o={};hideOv();S.banners=[];S.humanity=45;signTick();o.st=signStage();o.ch=bodyChanges().filter(c=>!c.fam).map(c=>c.name);
+ S.humanity=55;signTick();o.st55=signStage();S.humanity=61;signTick();o.st61=signStage();S.humanity=45;signTick();
+ const m=spawnMonster(pick(TOWNS[S.town].raid),0,0,{sc:'out'});const hp=m.hp;dmgFoe(m,10,null,true,{melee:true});o.dmg=Math.round(hp-m.hp);o.night=hasTrait('nighteyes');
+ S.crew.push({name:'Hank',role:'cook',morale:70});const B=S.baseInt;teleport(S.P,B.x+300,B.y+300,'base');return o;}));
+await p.waitForTimeout(600);
+console.log(await p.evaluate(()=>{const S=__splice.S,m=S.crew[0];teleport(S.P,m.x+20,m.y,'base');interact();return [S.panel,document.querySelector('#ov').innerText.slice(0,40)];}));
+await p.screenshot({path:'shots/crewtalk.png'});
+console.log(await p.evaluate(()=>{const S=__splice.S,m=S.crew[0];act('crewchat',{});act('crewfeed',{});const o=[m.morale];act('crewrole',{r:'guard'});o.push(m.role);act('crewfollow2',{});o.push(isFollower(m));return o;}));
+await p.waitForTimeout(800);console.log(await p.evaluate(()=>{const S=__splice.S;crewDawn();return [S.allies.filter(a=>a.crewRef).length,S.crew.length];}));
+await p.evaluate(()=>{hideOv();openGenome('me');});await p.waitForTimeout(300);await p.screenshot({path:'shots/claws.png'});
+console.log(errs);await b.close();})();
