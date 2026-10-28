@@ -10,7 +10,8 @@ function gateOpen(c){if(!c.fort||c.raided)return true;
   return (c.openT||0)>0;}
 function visibleChanges(){return S.disguise?0:bodyChanges().length;}
 {const _sf=solidsFor;solidsFor=function(sc){const r=_sf(sc);if(sc==='out'&&!r._g){r._g=1;(S.camps||[]).forEach(c=>{if(c.fort&&!gateOpen(c))gateRects(c).forEach(g=>r.push(g));});}return r;};}
-function gatePass(c,msg,good){c.passDay=S.day;c.everPassed=true;hideOv();toast(msg,good?'good':'');tryOpenGate(c);}
+function hasPass(c){return c.passDay===S.day&&!!c.passNight===!!S.night;}
+function gatePass(c,msg,good){c.passDay=S.day;c.passNight=!!S.night;c.everPassed=true;hideOv();toast(msg,good?'good':'');tryOpenGate(c);}
 function tryOpenGate(c){if(monsterAtGate(c)){if(S.t-(c.warnT||-99)>4){c.warnT=S.t;const g=gateCenter(c,40);floatText(g.x,g.y-30,'"Not with that thing out there! Kill it first!"','#ff8a95');toast('🛑 The guards won\'t open the gate while a monster is near it.','bad');}return false;}
   if(!((c.openT||0)>0))sfx('door');c.openT=Math.max(c.openT||0,3);S._sol={};return true;}
 /* gateHtml: replaced later */
@@ -40,7 +41,7 @@ function gateTick(dt){if(!S.camps)return;const P=S.P;
     // leaving: walk up to the gate from inside and they let you out
     if(insideCamp(c)){const gi=gateCenter(c,-40);if(Math.hypot(P.x-gi.x,P.y-gi.y)<50)tryOpenGate(c);continue;}
     const g=gateCenter(c,44);if(Math.hypot(P.x-g.x,P.y-g.y)>60)continue;
-    if(c.passDay===S.day||(c.sleeper&&S.night)){if(tryOpenGate(c)&&S.t-(c.hiT||-99)>20){c.hiT=S.t;toast(c.sleeper&&S.night?'🧬 Your gatekeeper slides the bolt open without a word.':'🙂 "It\'s you again. Come on in."','good');}continue;}
+    if(hasPass(c)||(c.sleeper&&S.night)){if(tryOpenGate(c)&&S.t-(c.hiT||-99)>20){c.hiT=S.t;toast(c.sleeper&&S.night?'🧬 Your gatekeeper slides the bolt open without a word.':'🙂 "It\'s you again. Come on in."','good');}continue;}
     if(S.t-(c.haltT||-99)<8)continue;c.haltT=S.t;
     if(c.everPassed&&wTier(c).name==='TRUSTED'&&S.humanity>=50&&visibleChanges()<3&&!S.night){gatePass(c,'🙂 '+c.leader+' waves from the tower: "Open up, it\'s a friend!"',true);return;}
     floatText(g.x,g.y-30,'"HALT!"','#ffd166');openGate(c);return;}}
@@ -65,7 +66,7 @@ function gateTick(dt){if(!S.camps)return;const P=S.P;
   const g=gateCenter(c,34),tx=-Math.sin(c.gate),ty=Math.cos(c.gate);
   [-1,1].forEach(s=>{const x=g.x+tx*s*40,y=g.y+ty*s*40;circ(x,y,11,c.sleeper&&s===1?'#5a3a7a':'#4a6a3a',2);circ(x+Math.cos(c.gate)*3,y+Math.sin(c.gate)*3,6,c.sleeper&&s===1?'#b8a0d0':'#e8c09a',1.5);
     if(c.sleeper&&s===1){ctx.fillStyle='#d6a0ff';ctx.beginPath();ctx.arc(x+Math.cos(c.gate)*6,y+Math.sin(c.gate)*6,1.8,0,7);ctx.fill();}});
-  const P=S.P;if(!op&&Math.hypot(P.x-g.x,P.y-g.y)<260)label(monsterAtGate(c)?'⚠️ gate locked: monster near':c.passDay===S.day?'✅ walk up, they\'ll open':'🛑 checkpoint',g.x,g.y+30,'#ffd166',12);});};}
-saveExt(d=>{d.campg=S.camps.map(c=>({sleeper:!!c.sleeper,gateBroken:!!c.gateBroken,passDay:c.passDay,refuseDay:c.refuseDay}));});
+  const P=S.P;if(!op&&Math.hypot(P.x-g.x,P.y-g.y)<260)label(monsterAtGate(c)?'⚠️ gate locked: monster near':hasPass(c)?'✅ walk up, they\'ll open':'🛑 checkpoint',g.x,g.y+30,'#ffd166',12);});};}
+saveExt(d=>{d.campg=S.camps.map(c=>({sleeper:!!c.sleeper,gateBroken:!!c.gateBroken,passDay:c.passDay,passNight:!!c.passNight,refuseDay:c.refuseDay}));});
 {const _lg=loadGame;loadGame=function(){const ok=_lg();try{if(ok){const d=saveInfo();(d.campg||[]).forEach((x,j)=>{if(S.camps[j])Object.assign(S.camps[j],x);});S._sol={};}}catch(e){}return ok;};}
 {const _lm=leaveTownMemory;leaveTownMemory=function(){_lm();const L=tlog();if(L.camps)S.camps.forEach((c,j)=>{if(L.camps[j])L.camps[j].sleeper=!!c.sleeper;});};}
