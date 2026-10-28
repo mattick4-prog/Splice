@@ -1,0 +1,14 @@
+{
+  "name": "splice",
+  "version": "1.0.0",
+  "description": "Splice: a monster-survival game about DNA, choices, and staying human.",
+  "private": true,
+  "scripts": {
+    "build": "./build.sh",
+    "start": "./build.sh && npx --yes http-server@14.1.1 -p 8080 -c-1 .",
+    "test": "./tests/run.sh"
+  },
+  "devDependencies": {
+    "playwright": "1.48.2"
+  }
+}

@@ -1,0 +1,12 @@
+const {chromium}=require('playwright');const fs=require('fs');
+(async()=>{fs.writeFileSync('wrapped.html','<!doctype html><html><head><meta charset="utf-8"></head><body>'+fs.readFileSync('../build/splice-body.html','utf8')+'</body></html>');
+const b=await chromium.launch();const p=await b.newPage({viewport:{width:1280,height:860}});const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto('file://'+process.cwd()+'/wrapped.html');await p.waitForTimeout(300);
+await p.evaluate(()=>{try{TITLE_TUT=false;}catch(e){}});await p.click('button[data-a="start"][data-mode="story"]');await p.waitForTimeout(300);
+await p.evaluate(()=>{const S=__splice.S;hideOv();giveRes({wood:3,scrap:2,meds:1},S.P.x,S.P.y);giveWeapon();giveKey();const k=truckParts()[1];S.truck.parts[k]='found';S.truck.tires=2;S.vault.push({id:1,gene:'dive',q:'clean',val:15,age:0});S.P.hp=50;});
+await p.waitForTimeout(200);await p.keyboard.press('i');await p.waitForTimeout(300);
+console.log(await p.evaluate(()=>__splice.S.panel));await p.screenshot({path:'shots/inv.png'});
+await p.click('[data-a="invheal"]');await p.waitForTimeout(100);console.log(await p.evaluate(()=>[__splice.S.P.hp,__splice.S.res.meds]));
+await p.click('[data-a="invwpn"]');console.log(await p.evaluate(()=>__splice.S.wpn));
+await p.keyboard.press('i');await p.waitForTimeout(100);console.log(await p.evaluate(()=>ovMode));
+await p.click('[data-tb="inv"]');await p.waitForTimeout(100);console.log(await p.evaluate(()=>__splice.S.panel));
+console.log(errs);await b.close();})();

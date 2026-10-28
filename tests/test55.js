@@ -1,0 +1,11 @@
+const {chromium}=require('playwright');const fs=require('fs');
+(async()=>{fs.writeFileSync('wrapped.html','<!doctype html><html><head><meta charset="utf-8"></head><body>'+fs.readFileSync('../build/splice-body.html','utf8')+'</body></html>');
+const b=await chromium.launch();const p=await b.newPage({viewport:{width:1280,height:860}});const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto('file://'+process.cwd()+'/wrapped.html');await p.waitForTimeout(300);
+await p.evaluate(()=>{try{TITLE_TUT=false;}catch(e){}});await p.click('button[data-a="start"][data-mode="story"]');await p.waitForTimeout(300);
+await p.evaluate(()=>{const S=__splice.S;hideOv();S.banners=[];S.res.wood=20;S.res.scrap=10;openWorkbench();});await p.waitForTimeout(300);
+await p.click('[data-a="defslot"][data-s="2"]');await p.waitForTimeout(200);await p.click('[data-a="defbuild"][data-t="wall"]');await p.waitForTimeout(300);
+await p.evaluate(()=>{const B=__splice.S.bp;B.tiles.forEach((t,i)=>{const si=B.slots.findIndex(x=>!x.filled&&x.mat===t.mat);bpPlace(t.id,si);});});await p.waitForTimeout(1200);
+console.log(await p.evaluate(()=>({panel:__splice.S.panel,defs:JSON.stringify(__splice.S.defs),slot:__splice.S.defSlot})));
+await p.evaluate(()=>{const S=__splice.S;hideOv();enterScene('out',BASE.x,BASE.y+140);});await p.waitForTimeout(800);await p.screenshot({path:'shots/wall.png'});
+console.log(await p.evaluate(()=>({panel:__splice.S.panel,defs:JSON.stringify(__splice.S.defs)})));
+console.log(errs);await b.close();})();
