@@ -1,0 +1,14 @@
+const {chromium}=require('playwright');const fs=require('fs');
+(async()=>{fs.writeFileSync('wrapped.html','<!doctype html><html><head><meta charset="utf-8"></head><body>'+fs.readFileSync('../build/splice-body.html','utf8')+'</body></html>');
+const b=await chromium.launch();const p=await b.newPage({viewport:{width:1280,height:800}});const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto('file://'+process.cwd()+'/wrapped.html');await p.waitForTimeout(300);
+await p.evaluate(()=>{localStorage.setItem('splice_save_v1',JSON.stringify({town:0,day:4,mode:'hunter'}));loadProfiles();showTitle(true);window.prompt=()=> 'Alex';});
+if(!(await p.locator('[data-profile] option').count())||!(await p.locator('button[data-a="load"]').count()))throw new Error('Legacy Player 1 save was not shown on the title screen');
+await p.click('button[data-a="newprofile"]');
+const alexId=await p.locator('[data-profile]').inputValue();if(alexId==='default')throw new Error('New profile was not selected');
+await p.evaluate(()=>{newGame({diff:'easy'});S.day=11;saveGame(true);});
+const second=await p.evaluate(()=>saveInfo().day);if(second!==11)throw new Error('New profile did not save its own progress');
+await p.selectOption('[data-profile]','default');
+const legacy=await p.evaluate(()=>saveInfo().day);if(legacy!==4)throw new Error('Switching profiles changed the legacy save');
+await p.selectOption('[data-profile]',alexId);
+const restored=await p.evaluate(()=>saveInfo().day);if(restored!==11)throw new Error('Switching back did not restore the second profile');
+console.log(errs);await b.close();})();

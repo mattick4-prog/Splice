@@ -212,9 +212,11 @@ function winGame(){
 }
 function showTitle(keep){
   if(!keep){newGame();S.mode='title';}
-  const sv=saveInfo();
+  const sv=saveInfo(),ap=activeProfile();
+  const profileOptions=PROFILES.map(p=>{const d=profileSaveInfo(p.id),progress=d?' · '+(TOWNS[d.town]?TOWNS[d.town].name:'Unknown town')+' · day '+(d.day||1):' · new';return `<option value="${p.id}" ${p.id===ACTIVE_PROFILE_ID?'selected':''}>${profileHtml(p.name)}${progress}</option>`;}).join('');
   showOv(`<div class="card"><div class="eyebrow">The United Wastes · Millbrook</div><h1>Splice</h1>
   <p class="sub">Hunt the monsters. Steal their DNA. Try not to become one.</p>
+  <div class="row" style="margin-bottom:10px"><label class="mute" for="player-profile">Player profile</label><select id="player-profile" data-profile>${profileOptions}</select><button class="btn sm ghost" data-a="newprofile">New profile</button>${ap.id!=='default'?'<button class="btn sm ghost" data-a="deleteprofile">Delete profile</button>':''}</div>
   <div class="row" style="margin-bottom:14px">${sv?`<button class="btn big gold" data-a="load">Continue · ${TOWNS[sv.town]?TOWNS[sv.town].name:''}, day ${sv.day}${sv.mode==='monster'?' (monster)':''}</button>`:''}
     <button class="btn big" data-a="start" data-mode="story">${sv?'New story':'Story mode'}</button><button class="btn big ghost" data-a="start" data-mode="conquest">Conquest mode</button></div>
   <div class="row" style="margin-bottom:6px"><b class="mute" style="margin-right:6px">Difficulty</b>${Object.keys(DIFFS).map(k=>`<button class="btn sm ${TITLE_DIFF===k?'gold':'ghost'}" data-a="diff" data-d="${k}">${DIFFS[k].name} · ${DIFFS[k].desc}</button>`).join('')}
@@ -240,11 +242,15 @@ function showTitle(keep){
 
 // ================= ACTIONS =================
 ov.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)return;act(t.dataset.a,t.dataset);});
+ov.addEventListener('change',e=>{const t=e.target.closest('[data-profile]');if(t){setGameProfile(t.value);showTitle(true);}});
 function act(a,d){
   if(a==='load'){audioInit();hideOv();if(!loadGame())showTitle();return;}
+  if(a==='newprofile'){const name=prompt('Name this player profile (up to 24 characters):');if(name===null)return;if(!addGameProfile(name)){alert('Enter a unique profile name.');return;}showTitle(true);return;}
+  if(a==='deleteprofile'){const p=activeProfile();if(p.id!=='default'&&confirm('Delete '+p.name+' and this profile\'s saved game?')){deleteGameProfile(p.id);showTitle(true);}return;}
+  if(a==='profile'){setGameProfile(d.id);showTitle(true);return;}
   if(a==='diff'){TITLE_DIFF=d.d;showTitle(true);return;}
   if(a==='snd'){SND=!SND;try{localStorage.setItem('splice_sound',SND?'on':'off');}catch(e){}showTitle(true);return;}
-  if(a==='start'){audioInit();newGame({story:d.mode!=='conquest',diff:TITLE_DIFF});hideOv();banner('DAY 1','You wake up in a rickety shack. Walk out the door and find supplies.','#ffd166');
+  if(a==='start'){if(saveInfo()&&!confirm('Start a new game in '+activeProfile().name+' and replace this profile\'s saved game?'))return;audioInit();newGame({story:d.mode!=='conquest',diff:TITLE_DIFF});hideOv();banner('DAY 1','You wake up in a rickety shack. Walk out the door and find supplies.','#ffd166');
     toast('WASD to move · mouse to aim · click or Space to swing.');toast('Walk into a building\'s door to go inside. Hold E to search containers.');toast('The workbench, DNA lab, bed and pantry are right here in your shack. Press E next to them.');return;}
   if(a==='turn'){hideOv();startMonsterMode();return;}
   if(a==='choice'){hideOv();applyChoice(d.c,d.o);return;}

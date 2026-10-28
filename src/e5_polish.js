@@ -16,7 +16,39 @@ function sfx(n){
 }
 function toggleSound(){SND=!SND;try{localStorage.setItem('splice_sound',SND?'on':'off');}catch(e){}if(S)toast('Sound '+(SND?'on':'off')+' (N to toggle).');}
 // ---------- saving ----------
-const SAVE_KEY='splice_save_v1';
+const PROFILE_INDEX_KEY='splice_profiles_v1';
+let SAVE_KEY='splice_save_v1';
+let PROFILES=[{id:'default',name:'Player 1'}];
+let ACTIVE_PROFILE_ID='default';
+function profileSaveKey(id){return id==='default'?'splice_save_v1':'splice_save_v1_'+id;}
+function saveProfileIndex(){try{localStorage.setItem(PROFILE_INDEX_KEY,JSON.stringify({profiles:PROFILES,active:ACTIVE_PROFILE_ID}));}catch(e){}}
+function loadProfiles(){
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(PROFILE_INDEX_KEY)||'null');}catch(e){}
+  PROFILES=[{id:'default',name:'Player 1'}];
+  const ids=new Set(['default']);
+  if(saved&&Array.isArray(saved.profiles))saved.profiles.forEach(p=>{
+    if(!p||typeof p.id!=='string'||!/^p_[a-z0-9_]+$/.test(p.id)||ids.has(p.id))return;
+    const name=String(p.name||'').trim().slice(0,24);if(!name)return;
+    PROFILES.push({id:p.id,name});ids.add(p.id);
+  });
+  ACTIVE_PROFILE_ID=PROFILES.some(p=>p.id===saved?.active)?saved.active:'default';
+  SAVE_KEY=profileSaveKey(ACTIVE_PROFILE_ID);saveProfileIndex();
+}
+function activeProfile(){return PROFILES.find(p=>p.id===ACTIVE_PROFILE_ID)||PROFILES[0];}
+function setGameProfile(id){if(!PROFILES.some(p=>p.id===id))return false;ACTIVE_PROFILE_ID=id;SAVE_KEY=profileSaveKey(id);saveProfileIndex();return true;}
+function addGameProfile(name){
+  name=String(name||'').trim().slice(0,24);if(!name||PROFILES.some(p=>p.name.toLowerCase()===name.toLowerCase()))return false;
+  const id='p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);PROFILES.push({id,name});setGameProfile(id);return true;
+}
+function deleteGameProfile(id){
+  if(id==='default'||PROFILES.length<=1)return false;
+  const i=PROFILES.findIndex(p=>p.id===id);if(i<0)return false;
+  try{localStorage.removeItem(profileSaveKey(id));}catch(e){}
+  PROFILES.splice(i,1);if(ACTIVE_PROFILE_ID===id)ACTIVE_PROFILE_ID='default';SAVE_KEY=profileSaveKey(ACTIVE_PROFILE_ID);saveProfileIndex();return true;
+}
+function profileSaveInfo(id){try{return JSON.parse(localStorage.getItem(profileSaveKey(id))||'null');}catch(e){return null;}}
+function profileHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+loadProfiles();
 function saveGame(quiet){
   try{if(!S||!(S.mode==='hunter'||S.mode==='monster'))return;
     const hyb={};Object.keys(POWERS).forEach(id=>{if(POWERS[id].hybrid)hyb[id]=POWERS[id];});
